@@ -26,6 +26,44 @@ module chip #(
     input logic res_rdy
 );
 
+// dp and ctrl internal wires
+logic mac;
+logic i_done;
+logic j_done;
+logic k_done;
+logic loaded;
 
+// instantiations
+datapath dp (
+    .clk (clk),
+    .rst (rst),
+    .s_axis_tdata (s_axis_tdata),
+    .s_axis_tvalid (s_axis_tvalid),
+    .s_axis_tlast (s_axis_tlast),
+    .s_axis_tready (s_axis_tready),
+    .m_axis_tdata (m_axis_tdata),
+    .m_axis_tvalid (m_axis_tvalid),
+    .m_axis_tlast (m_axis_tlast),
+    .m_axis_tready (m_axis_tready),
+    .i_done (i_done),
+    .j_done (j_done),
+    .k_done (k_done),
+    .mac (mac),
+    .loaded (loaded)
+);
+
+control ctrl (
+    .clk (clk),
+    .rst (rst),
+    .ops_val (ops_val),
+    .ops_rdy (ops_rdy),
+    .res_val (res_val),
+    .res_rdy (res_rdy),
+    .i_done (i_done),
+    .j_done (j_done),
+    .k_done (k_done),
+    .mac (mac),
+    .loaded (loaded)
+);
 
 endmodule
