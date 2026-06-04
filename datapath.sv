@@ -18,11 +18,13 @@ module datapath #(
     output logic m_axis_tlast,
     input logic m_axis_tready,
     
+    // control.sv
     output logic i_done,
     output logic j_done,
     output logic k_done,
 
-    input logic mac // tells us to multiply-accumulate
+    input logic mac, // tells us to multiply-accumulate
+    output logic loaded // tell ctrl we have loaded the two matrices fully
 );
 
 logic [WIDTH-1:0] mat_a [N-1:0][N-1:0];
@@ -43,6 +45,7 @@ logic [$clog2(N)-1:0] k; // fixed and cycles from 0->N-1 so we pick out one elem
 assign i_done = (i == N-1);
 assign j_done = (j == N-1);
 assign k_done = (k == N-1);
+assign loaded = (load_cnt == 2*N*N);
 
 assign s_axis_tready = (load_cnt < 2*N*N); // load entries until we get them all!
 
