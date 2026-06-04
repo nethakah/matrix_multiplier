@@ -19,11 +19,13 @@ module chip #(
     output logic m_axis_tlast,
     input logic m_axis_tready,
 
-    // control
-    output logic ops_val, // sender says matrices are ready to send
-    input logic ops_rdy, // ops ready to operate
-    input logic res_val, // ops says results are ready to send
-    output logic res_rdy // sender is ready for results
+    // control; note this matches ctrl
+    input logic ops_val,
+    output logic ops_rdy,
+    output logic res_val,
+    input logic res_rdy
 );
+
+
 
 endmodule
