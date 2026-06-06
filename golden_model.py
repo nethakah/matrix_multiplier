@@ -1,6 +1,6 @@
 import random
 
-def matrixMultiplier(matA, matB):
+def matrixMultiplier(matA: list, matB: list):
     n = len(matA)
     matAB = [ [0 for _ in range(n)] for _ in range(n) ]
 
@@ -14,7 +14,7 @@ def matrixMultiplier(matA, matB):
                     accumulator = 0 
     return matAB
 
-def generateMatrix(n, bitWidth):
+def generateMatrix(n: int, bitWidth: int):
     return [ [random.randint(0, 2**bitWidth - 1) for _ in range(n)] for _ in range(n) ]
 
 if __name__ == "__main__":
