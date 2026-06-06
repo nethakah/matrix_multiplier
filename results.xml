@@ -1,0 +1,8 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1780723862" />
+    <testcase name="testMatrixMultiplier" classname="testbench" file="/Users/nethaka/Projects/FPGA/matrix_multiplier/testbench.py" lineno="6" time="0.3331007957458496" sim_time_ns="100360.0" ratio_time="301290.18387747416">
+      <failure error_type="Exception" error_msg="Timeout waiting for res_val after 10001 cycles" />
+    </testcase>
+  </testsuite>
+</testsuites>
