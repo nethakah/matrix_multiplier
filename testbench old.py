@@ -61,9 +61,24 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
     print(f"After streaming - ops_rdy = {dut.ops_rdy.value}")
     print(f"After streaming - load_cnt = {dut.dp.load_cnt.value}")
     
-    # read results as they stream out
+    # wait for hardware to compute
+    while not dut.res_val.value:
+        await RisingEdge(dut.clk)
+        cycles += 1
+        if cycles % 1000 == 0:
+            print(f"Cycle {cycles} - res_val={dut.res_val.value} i_done={dut.dp.i.value} j_done={dut.dp.j.value} k={dut.dp.k.value} mac={dut.mac.value}")
+        if cycles > 10000:
+            raise Exception(f"Timeout waiting for res_val after {cycles} cycles")
+
+    # tell hardware we're ready for results
+    dut.res_rdy.value = 1
+
+    # gather all results
     softwareResult = matrixMultiplier(matA, matB)
-    hardwareResult = await readHardwareResult(dut, n)
+    hardwareResult = await readHardwareResult(dut, n, width)
+
+    # deassert res_rdy
+    dut.res_rdy.value = 0
 
     assert softwareResult == hardwareResult, f"Error. Hardware: {hardwareResult}, Software: {softwareResult}"
 
@@ -92,23 +107,22 @@ async def streamMatrixIn(dut, mat: list):
             dut.s_axis_tlast.value = 0
 
 
-async def readHardwareResult(dut, n):
-    flatResult = []
-    dut.m_axis_tready.value = 1
+async def readHardwareResult(dut, n, width):
+    resultMat = [ [0 for _ in range(n)] for _ in range(n) ]
+    for i in range(n):
+        for j in range(n):
 
-    cycles = 0
-    while True:
-        await RisingEdge(dut.clk)
-        cycles += 1
-        if cycles > 1000:
-            raise Exception(f"Timeout waiting for m_axis_tvalid after {cycles} cycles")
-        if dut.m_axis_tvalid.value and dut.m_axis_tready.value:
-            flatResult.append(int(dut.m_axis_tdata.value))
-            if dut.m_axis_tlast.value:
-                break
+            dut.m_axis_tready.value=1
+
+            while not dut.m_axis_tvalid.value:
+                await RisingEdge(dut.clk)
+            
+            await RisingEdge(dut.clk) # need to wait for transfer to occur
+            resultMat[i][j] = dut.m_axis_tdata.value
+
+            dut.m_axis_tready.value = 0 # deassert
     
-    dut.m_axis_tready.value = 0
-    return [ flatResult[r*n:(r+1)*n] for r in range(n)]
+    return resultMat
 
 
 

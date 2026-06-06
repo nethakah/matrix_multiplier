@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1780729915" />
+    <testcase name="testMatrixMultiplier" classname="testbench" file="/Users/nethaka/Projects/FPGA/matrix_multiplier/testbench.py" lineno="6" time="0.0058231353759765625" sim_time_ns="1150.0" ratio_time="197488.11005568295" />
+  </testsuite>
+</testsuites>
