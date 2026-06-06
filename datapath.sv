@@ -13,7 +13,7 @@ module datapath #(
     output logic s_axis_tready,
 
     //master
-    output logic [WIDTH-1:0] m_axis_tdata,
+    output logic [2*WIDTH+$clog2(N)-1:0] m_axis_tdata,
     output logic m_axis_tvalid,
     output logic m_axis_tlast,
     input logic m_axis_tready,
@@ -32,7 +32,7 @@ logic [WIDTH-1:0] mat_b [N-1:0][N-1:0];
 
 logic [2*WIDTH+$clog2(N)-1:0] accumulator; 
 // multiplying needs 2*WIDTH bits and then adding N products tg needs clog2(N) more bits
-logic [$clog2(2*N*N)-1:0] load_cnt;
+logic [$clog2(2*N*N):0] load_cnt;
 // N^2 elements from mat_a and N^2 elements from mat_b
 // so <N*N means loading mat_a
 // and >=N*N means loading mat_b
@@ -53,10 +53,10 @@ assign s_axis_tready = (load_cnt < 2*N*N); // load entries until we get them all
 always_ff @(posedge clk) begin
     if (rst) begin
         // the matrices
-        for (int i = 0; i < N; i++) begin
-            for (int j = 0; j < N; j++) begin
-                mat_a[i][j] <= '0;
-                mat_b[i][j] <= '0;
+        for (int x = 0; x < N; x++) begin
+            for (int y = 0; y < N; y++) begin
+                mat_a[x][y] <= '0;
+                mat_b[x][y] <= '0;
             end
         end
 

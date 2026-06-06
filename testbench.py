@@ -16,6 +16,7 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
     # release reset
     dut.rst.value = 0
     await RisingEdge(dut.clk) # pause til rising edge
+    print(f"After reset - k={dut.dp.k.value} i={dut.dp.i.value} j={dut.dp.j.value}")
 
     # debug
     print(f"After reset - ops_rdy = {dut.ops_rdy.value}")
@@ -46,8 +47,13 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
     await streamMatrixIn(dut, matA)
     await streamMatrixIn(dut, matB)
     
+    # wait for control to leave IDLE (ops_rdy goes low)
+    while dut.ops_rdy.value:
+        await RisingEdge(dut.clk)
+
     # deassert ops_val
     dut.ops_val.value = 0
+
     # debug — check state after loading
     await RisingEdge(dut.clk)
     print(f"After streaming - loaded = {dut.loaded.value}")
@@ -60,7 +66,7 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
         await RisingEdge(dut.clk)
         cycles += 1
         if cycles % 1000 == 0:
-            print(f"Cycle {cycles} - res_val={dut.res_val.value} ops_rdy={dut.ops_rdy.value}")
+            print(f"Cycle {cycles} - res_val={dut.res_val.value} i_done={dut.dp.i.value} j_done={dut.dp.j.value} k={dut.dp.k.value} mac={dut.mac.value}")
         if cycles > 10000:
             raise Exception(f"Timeout waiting for res_val after {cycles} cycles")
 

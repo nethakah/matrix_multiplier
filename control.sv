@@ -18,7 +18,8 @@ module control (
     input logic i_done,
     input logic j_done,
     input logic k_done,
-    input logic loaded
+    input logic loaded,
+    input logic result_pending
 );
 
 typedef enum logic [1:0] {
@@ -51,13 +52,9 @@ always_comb begin
             end
         end
         CALC: begin // remember this covers the ENTIRE MATRIX ALL ENTRIES UNTIL FULLY DONE
-            if (k_done) begin
-                mac = 1'b0; // redundant but note backpressure fix - no mac until output transfers the dot product result
-                if (i_done && j_done) begin // fully done with all entries
-                    next_state = DONE;
-                end
-            end else begin
-                mac = 1'b1; 
+            mac = !result_pending; // pause computing while a finished result waits to be taken
+            if (i_done && j_done && k_done) begin // only leave when the last entry actually finalizes
+                next_state = DONE;
             end
         end
         DONE: begin

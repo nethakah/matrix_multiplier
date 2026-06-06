@@ -14,7 +14,7 @@ module chip #(
     output logic s_axis_tready,
 
     // datapath-master; note this matches dp
-    output logic [WIDTH-1:0] m_axis_tdata,
+    output logic [2*WIDTH+$clog2(N)-1:0] m_axis_tdata,
     output logic m_axis_tvalid,
     output logic m_axis_tlast,
     input logic m_axis_tready,
@@ -63,7 +63,8 @@ control ctrl (
     .j_done (j_done),
     .k_done (k_done),
     .mac (mac),
-    .loaded (loaded)
+    .loaded (loaded),
+    .result_pending (m_axis_tvalid)
 );
 
 endmodule
