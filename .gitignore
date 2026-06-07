@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+*.egg-info/
+
+# cocotb / simulation build artifacts
+sim_build/
+results.xml
+*.vcd
+*.shm/
+*.fst
+dump.*
+
+# Icarus / waveform output
+*.vvp
+
+# OS clutter
+.DS_Store
