@@ -1,7 +1,7 @@
 import cocotb, random
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
-from sequential.golden_model import matrixMultiplier, generateMatrix
+from golden_model import matrixMultiplier, generateMatrix
 
 @cocotb.test()
 async def testMatrixMultiplier(dut): # async so we can wait for clock edge to happen
