@@ -1,6 +1,6 @@
 SIM = icarus
 TOPLEVEL_LANG = verilog
-VERILOG_SOURCES = $(PWD)/datapath.sv $(PWD)/control.sv $(PWD)/chip.sv
+VERILOG_SOURCES = $(PWD)/datapath.sv $(PWD)/control.sv $(PWD)/chip.sv $(PWD)/array.sv $(PWD)/pe.sv
 TOPLEVEL = chip
 MODULE = testbench
 
