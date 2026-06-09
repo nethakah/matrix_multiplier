@@ -1,7 +1,3 @@
-// state machine IDLE/CALC/DONE
-// tells datapath.sv when to load, when to MAC, when to ++counter
-// watch status signals from datapath.sv
-// handle ready-valid interface
 
 module control (
     input logic clk,
@@ -14,17 +10,14 @@ module control (
     input logic res_rdy, // outside are ready for result
 
     // datapath
-    output logic mac,
-    input logic i_done,
-    input logic j_done,
-    input logic k_done,
     input logic loaded,
-    input logic result_pending
+    input logic compute_done,
+    output logic compute_busy
 );
 
 typedef enum logic [1:0] {
     IDLE = 2'b00,
-    CALC = 2'b01,
+    BUSY = 2'b01,
     DONE = 2'b10
 } state_t;
 
@@ -39,21 +32,22 @@ always_ff @(posedge clk) begin
 end
 
 always_comb begin
+    // set port outputs to default
     ops_rdy = 1'b0;
     res_val = 1'b0;
-    mac = 1'b0;
+    compute_busy = 1'b0;
     next_state = curr_state;
 
     case (curr_state)
         IDLE: begin
             ops_rdy = 1'b1;
             if (loaded && ops_val) begin
-                next_state = CALC;
+                next_state = BUSY;
             end
         end
-        CALC: begin // remember this covers the ENTIRE MATRIX ALL ENTRIES UNTIL FULLY DONE
-            mac = !result_pending; // pause computing while a finished result waits to be taken
-            if (i_done && j_done && k_done) begin // only leave when the last entry actually finalizes
+        BUSY: begin // remember this covers the ENTIRE MATRIX ALL ENTRIES UNTIL FULLY DONE
+            compute_busy = 1'b1;
+            if (compute_done) begin // only leave when the last entry actually finalizes
                 next_state = DONE;
             end
         end

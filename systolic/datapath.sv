@@ -18,9 +18,9 @@ module datapath #(
     input logic m_axis_tready,
 
     //control.sv - logic here is ctrl sets busy=1, then waits until done=1
-    input logic busy,
+    input logic compute_busy,
     output logic loaded,
-    output logic done
+    output logic compute_done
 );
 
 // the matrices
@@ -84,7 +84,7 @@ always_ff @(posedge clk) begin
         load_cnt <= load_cnt + 1;
 
     // if we are computing, advance (while t < 3N-3)
-    end else if (busy) begin
+    end else if (compute_busy) begin
         if (t < 3*N-3) begin // computing values
             t <= t + 1;
         end else begin // (t == 3N-3) -> done computing
@@ -96,7 +96,7 @@ always_ff @(posedge clk) begin
                     out_cnt <= out_cnt + 1;
                 end
                 else begin
-                    done <= 1'b1;
+                    compute_done <= 1'b1;
                     m_axis_tvalid <= '0;
                 end
             end
