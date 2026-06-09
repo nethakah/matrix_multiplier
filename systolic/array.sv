@@ -8,6 +8,7 @@ module array #(
     input logic [WIDTH-1:0] a_edge [0:N-1],
     input logic [WIDTH-1:0] b_edge [0:N-1],
     output logic [2*WIDTH+$clog2(N)-1:0] ab_out [0:N-1][0:N-1]
+    // Note: we actually store an output matrix now because systolic is not in-order of entries like sequential
 );
 
 logic [WIDTH-1:0] a_wire [0:N-1][0:N]; // matA flows horizontally

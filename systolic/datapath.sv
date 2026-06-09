@@ -1,7 +1,6 @@
-
 module datapath #(
-    parameter N = 4, // NxN matrices
-    parameter WIDTH = 8 // max bits for each value in the matrix we load in
+    parameter N = 4,
+    parameter WIDTH = 8
 )(
     input logic clk,
     input logic rst,
@@ -17,36 +16,39 @@ module datapath #(
     output logic m_axis_tvalid,
     output logic m_axis_tlast,
     input logic m_axis_tready,
-    
-    // control.sv
-    output logic i_done,
-    output logic j_done,
-    output logic k_done,
 
-    input logic mac, // tells us to multiply-accumulate
-    output logic loaded // tell ctrl we have loaded the two matrices fully
+    //control.sv - logic here is ctrl sets busy=1, then waits until done=1
+    input logic busy,
+    output logic loaded,
+    output logic done
 );
 
+// the matrices
 logic [WIDTH-1:0] mat_a [N-1:0][N-1:0];
 logic [WIDTH-1:0] mat_b [N-1:0][N-1:0];
 
-logic [2*WIDTH+$clog2(N)-1:0] accumulator; 
-// multiplying needs 2*WIDTH bits and then adding N products tg needs clog2(N) more bits
-logic [$clog2(2*N*N):0] load_cnt;
-// N^2 elements from mat_a and N^2 elements from mat_b
-// so <N*N means loading mat_a
-// and >=N*N means loading mat_b
+// array.sv
+logic [WIDTH-1:0] a_edge [0:N-1];
+logic [WIDTH-1:0] b_edge [0:N-1];
+logic [2*WIDTH+$clog2(N)-1:0] ab_out [0:N-1][0:N-1]; // output matrix
+array #(
+    .N (N),
+    .WIDTH (WIDTH)
+) u_array (
+    .clk (clk),
+    .rst (rst),
+    .a_edge (a_edge),
+    .b_edge (b_edge),
+    .ab_out (ab_out)
+);
 
-// internal counters for during CALC to track what output element is being computed
-logic [$clog2(N)-1:0] i; // row of mat_a
-logic [$clog2(N)-1:0] j; // col of mat_b
-logic [$clog2(N)-1:0] k; // fixed and cycles from 0->N-1 so we pick out one element from row and one from col each clk cycle
+// counters (no -1 because we want an overflow extra 1 bit)
+logic [$clog2(2*N*N):0] load_cnt; // N^2 for matA + N^2 for matB
+logic [$clog2(3*N):0] t; // cycle counter to know when done computing (heartbeat of compute phase)
+// N-1 cycles input enterring + N-1 to move across array + N-1 mult-adds to accumulate dot product
+logic [$clog2(N*N):0] out_cnt; // counts us outputting the result matrix ab_out's entries
 
-assign i_done = (i == N-1);
-assign j_done = (j == N-1);
-assign k_done = (k == N-1);
-assign loaded = (load_cnt == 2*N*N);
-
+assign loaded = (load_cnt == 2*N*N); // loaded all
 assign s_axis_tready = (load_cnt < 2*N*N); // load entries until we get them all!
 
 // calculation clock
@@ -61,11 +63,9 @@ always_ff @(posedge clk) begin
         end
 
         // internal signals
-        accumulator <= '0;
         load_cnt <= '0;
-        i <= '0;
-        j <= '0;
-        k <= '0;
+        t <= '0;
+        out_cnt <= '0;
 
         // outputs driven by datapath that are not handled elsewhere
         m_axis_tdata <= '0;
@@ -83,29 +83,50 @@ always_ff @(posedge clk) begin
         end
         load_cnt <= load_cnt + 1;
 
-    // Compute an entry and output it (case 2 and 3).
-    end else if (mac) begin
-        accumulator <= accumulator + (mat_a[i][k] * mat_b[k][j]);
-        if (k==N-1) begin // current element fully computed
-            j <= j + 1;
-            k <= '0;
-            m_axis_tdata <= accumulator + (mat_a[i][k] * mat_b[k][j]);
+    // if we are computing, advance (while t < 3N-3)
+    end else if (busy) begin
+        if (t < 3*N-3) begin // computing values
+            t <= t + 1;
+        end else begin // (t == 3N-3) -> done computing
+            m_axis_tdata <= ab_out[out_cnt/N][out_cnt%N];
             m_axis_tvalid <= 1'b1;
-            accumulator <= '0;
-            if (j==N-1) begin // final column of B to multiply the row of A against
-                i <= i + 1;
-                j <= '0;
-                if (i==N-1) begin // final row of A to multiply against columns of B
-                    i <= '0;
-                    m_axis_tlast <= 1; // since we are on the last entry/element, assert we are done!
+            m_axis_tlast <= (out_cnt == N*N-1); // note: cannot set tlast inside 'if' statement bc will fire 1 cycle late of last value
+            if (m_axis_tvalid && m_axis_tready) begin
+                if (out_cnt < N*N-1) begin
+                    out_cnt <= out_cnt + 1;
+                end
+                else begin
+                    done <= 1'b1;
+                    m_axis_tvalid <= '0;
                 end
             end
-        end else begin
-            k <= k+1;
         end
-    end else if (m_axis_tvalid && m_axis_tready) begin // outputting
-        m_axis_tvalid <= '0;
-        m_axis_tlast <= '0;
+    end
+end
+
+always_comb begin
+    // left edge
+    for (int i=0; i<N; i++) begin
+        if (t >= i && t-i<N) begin 
+        // t>=i means we havent hit current compute counter and row i's feed has started
+            // note we do this way to guard from unsigned subtract bc we ensure t>=i so there's never wrapping
+        // t-i<N means feed hasn't finished
+            a_edge[i] = mat_a[i][t-i];
+            // feed col (t-i) of row i
+            // streams row in order since t-i walks 0,1,...,N-1
+        end else begin
+            a_edge[i] = '0;
+            // finished or not started so feed 0 to the PE (does nothing)
+        end
+    end
+
+    // top edge - same concept as left edge
+    for (int j=0; j<N; j++) begin
+        if (t >= j && t-j<N) begin
+            b_edge[j] = mat_b[t-j][j];
+        end else begin
+            b_edge[j] = '0;
+        end
     end
 end
 
