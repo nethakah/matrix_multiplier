@@ -16,6 +16,8 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
         dut.rst.value = 0
         await RisingEdge(dut.clk)
 
+        dut.res_rdy.value = 1
+
         n = 4
         width = 8
         matA = generateMatrix(n, width)
