@@ -174,14 +174,14 @@ end
 // prefetching - present read addresses (t+1's values NOW for next cycle bc bram will be 1 cycle late)
 always_comb begin
     for (int i=0; i<N; i++) begin
-        if (compute_busy && (t+1)>=i && (t+1)-i<N) // will row i be active next cycle (SHOULD WE FEED VALUE OR 0 for staircase)
-            a_raddr[i] = (t+1) - i; // yes - get that column
+        if (compute_busy && t>=i && t-i<N) // will row i be active next cycle (SHOULD WE FEED VALUE OR 0 for staircase)
+            a_raddr[i] = t-i; // yes - get that column
         else
             a_raddr[i] = '0; // no - ask anything j ignore it later
     end
     for (int j = 0; j < N; j++) begin
-        if (compute_busy && (t+1)>=j && (t+1)-j<N) // will col j be active next cycle (SHOULD WE FEED VALUE OR 0 for staircase)
-            b_raddr[j] = (t+1) - j; // yes - get that row
+        if (compute_busy && t>=j && t-j<N) // will col j be active next cycle (SHOULD WE FEED VALUE OR 0 for staircase)
+            b_raddr[j] = t-j; // yes - get that row
         else
             b_raddr[j] = '0;
     end
@@ -190,9 +190,9 @@ end
 // remember if ask was real or useless - delayed 1 cycle so lines up w data
 always_ff @(posedge clk) begin
     for (int i=0; i<N; i++)
-        a_valid[i] <= (compute_busy) && ((t+1)>=i) && ((t+1)-i<N); // same condition used in prefetching to see if real ask
+        a_valid[i] <= (compute_busy) && (t>=i) && (t-i<N); // same condition used in prefetching to see if real ask
     for (int j=0; j<N; j++)
-        b_valid[j] <= (compute_busy) && ((t+1)>=j) && ((t+1)-j<N);
+        b_valid[j] <= (compute_busy) && (t>=j) && (t-j<N);
 end
 
 // data arrived - feed to array if real else just '0 if invalid
