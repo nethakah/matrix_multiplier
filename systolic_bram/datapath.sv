@@ -87,8 +87,7 @@ logic [$clog2(3*N):0] t; // cycle counter to know when done computing (heartbeat
 // ~N cycles input enterring + ~N to move across array + ~N mult-adds to accumulate dot product
 logic [$clog2(N*N):0] out_cnt; // counts us outputting the result matrix ab_out's entries
 
-
-
+// internal
 assign loaded = (load_cnt == 2*N*N); // loaded all
 assign s_axis_tready = (load_cnt < 2*N*N); // load entries until we get them all!
 
@@ -141,30 +140,23 @@ always_ff @(posedge clk) begin
     end
 end
 
+
+// WRITE (route tdata to right bank during loading)
 always_comb begin
-    // left edge
-    for (int i=0; i<N; i++) begin
-        if (compute_busy && t >= i && t-i<N) begin 
-        // t>=i means we havent hit current compute counter and row i's feed has started
-            // note we do this way to guard from unsigned subtract bc we ensure t>=i so there's never wrapping
-        // t-i<N means feed hasn't finished
-            a_edge[i] = mat_a[i][t-i];
-            // feed col (t-i) of row i
-            // streams row in order since t-i walks 0,1,...,N-1
-        end else begin
-            a_edge[i] = '0;
-            // finished or not started so feed 0 to the PE (does nothing)
-        end
+    for (int bank=0; bank<N; bank++) begin // default (no bank written)
+        a_we[bank] = '0;
+        a_waddr[bank] = '0;
+        a_wdata[bank] = '0;
+        b_we[bank] = '0;
+        b_waddr[bank] = '0;
+        b_wdata[bank] = '0;
     end
 
-    // top edge - same concept as left edge
-    for (int j=0; j<N; j++) begin
-        if (compute_busy && t >= j && t-j<N) begin
-            b_edge[j] = mat_b[t-j][j];
-        end else begin
-            b_edge[j] = '0;
-        end
-    end
+end
+
+// READ (present read address with skew for systolic array)
+always_comb begin
+
 end
 
 // testing/debug - remove later
