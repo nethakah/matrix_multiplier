@@ -118,8 +118,6 @@ golden model.
 
 ## Design notes
 
-A few of the load-bearing ideas, kept here because they are the interview-relevant parts.
-
 **Output-stationary systolic dataflow.** Each PE permanently owns one output element and
 accumulates one product per cycle. Operands are skewed (row i of A delayed i cycles,
 column j of B delayed j cycles) so the matching terms of each dot product arrive together.
