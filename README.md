@@ -5,10 +5,6 @@ limitations of the previous one. All three expose an identical AXI4-Stream inter
 and are verified in simulation with [cocotb](https://www.cocotb.org/) under randomized
 backpressure.
 
-The progression — **sequential -> systolic -> systolic + BRAM** — is the point: it shows
-the same problem solved at three points on the area/throughput/scalability curve, with
-the tradeoffs made explicit.
-
 ---
 
 ## Architectures
