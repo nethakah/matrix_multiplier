@@ -220,12 +220,4 @@ always_comb begin
     end
 end
 
-
-// testing/debug - remove later
-always @(posedge clk) begin
-    if (compute_busy)
-        $display("t=%0d  ab_out[0][0]=%0d  out_cnt=%0d  tvalid=%0d tready=%0d tdata=%0d",
-                 t, ab_out[0][0], out_cnt, m_axis_tvalid, m_axis_tready, m_axis_tdata);
-end
-
 endmodule
