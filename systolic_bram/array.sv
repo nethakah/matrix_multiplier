@@ -1,25 +1,29 @@
 module array #(
+    parameter M = 8,
     parameter N = 4,
+    parameter K = 6,
     parameter WIDTH = 8
 )(
     input logic clk,
     input logic rst,
-    
-    input logic [WIDTH-1:0] a_edge [0:N-1],
-    input logic [WIDTH-1:0] b_edge [0:N-1],
-    output logic [2*WIDTH+$clog2(N)-1:0] ab_out [0:N-1][0:N-1]
+
+    input logic [WIDTH-1:0] a_edge [0:M-1],
+    input logic [WIDTH-1:0] b_edge [0:K-1],
+    output logic [2*WIDTH+$clog2(N)-1:0] ab_out [0:M-1][0:K-1]
     // Note: we actually store an output matrix now because systolic is not in-order of entries like sequential
 );
 
-logic [WIDTH-1:0] a_wire [0:N-1][0:N]; // matA flows horizontally
-logic [WIDTH-1:0] b_wire [0:N][0:N-1]; // matB flows vertically
+logic [WIDTH-1:0] a_wire [0:M-1][0:K]; // matA flows horizontally
+logic [WIDTH-1:0] b_wire [0:M][0:K-1]; // matB flows vertically
 
-// instantiates N edge inputs and places them onto boundary wires
+// instantiates edge inputs and places them onto boundary wires
 // (in other words, takes cols/rows of A/B and puts them on edges in prep for movement)
 genvar x;
 generate
-    for (x=0; x<N; x++) begin : edges
+    for (x=0; x<M; x++) begin : a_edges
         assign a_wire[x][0] = a_edge[x]; // left edge <- A inputs
+    end
+    for (x=0; x<K; x++) begin : b_edges
         assign b_wire[0][x] = b_edge[x]; // top edge <- B inputs
     end
 endgenerate
@@ -27,8 +31,8 @@ endgenerate
 // instantiates all the PEs and pair the in/outs to the wires we created
 genvar i,j;
 generate
-    for (i=0; i<N; i++) begin : row
-        for (j=0; j<N; j++) begin : col
+    for (i=0; i<M; i++) begin : row
+        for (j=0; j<K; j++) begin : col
             pe #(
                 .N (N),
                 .WIDTH (WIDTH)

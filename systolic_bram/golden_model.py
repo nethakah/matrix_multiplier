@@ -1,28 +1,30 @@
 import random
 
 def matrixMultiplier(matA: list, matB: list):
-    n = len(matA)
-    matAB = [ [0 for _ in range(n)] for _ in range(n) ]
+    m = len(matA)       # rows of A
+    n = len(matA[0])    # cols of A = rows of B (contraction)
+    k = len(matB[0])    # cols of B
+    matAB = [ [0 for _ in range(k)] for _ in range(m) ]
 
-    accumulator = 0
-    for i in range(n):
-        for j in range(n):
-            for k in range(n):
-                accumulator += matA[i][k]*matB[k][j]
-                if k==n-1:
-                    matAB[i][j] = accumulator
-                    accumulator = 0 
+    for i in range(m):
+        for j in range(k):
+            accumulator = 0
+            for p in range(n):
+                accumulator += matA[i][p]*matB[p][j]
+            matAB[i][j] = accumulator
     return matAB
 
-def generateMatrix(n: int, bitWidth: int):
-    return [ [random.randint(0, 2**bitWidth - 1) for _ in range(n)] for _ in range(n) ]
+def generateMatrix(rows: int, cols: int, bitWidth: int):
+    return [ [random.randint(0, 2**bitWidth - 1) for _ in range(cols)] for _ in range(rows) ]
 
 if __name__ == "__main__":
+    m = 4
     n = 4
+    k = 4
     width = 8
 
-    matA = generateMatrix(n, width)
-    matB = generateMatrix(n, width)
+    matA = generateMatrix(m, n, width)
+    matB = generateMatrix(n, k, width)
 
     print(f"A = {matA}")
     print(f"B = {matB}")

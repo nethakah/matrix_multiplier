@@ -1,7 +1,12 @@
-import cocotb, random
+import cocotb, random, os
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
 from golden_model import matrixMultiplier, generateMatrix
+
+# dims must match the RTL params (set via Makefile COMPILE_ARGS)
+M = int(os.environ.get("M", 4))
+N = int(os.environ.get("N", 4))
+K = int(os.environ.get("K", 4))
 
 @cocotb.test()
 async def testMatrixMultiplier(dut): # async so we can wait for clock edge to happen
@@ -18,10 +23,9 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
 
         dut.res_rdy.value = 1
 
-        n = 4
         width = 8
-        matA = generateMatrix(n, width)
-        matB = generateMatrix(n, width)
+        matA = generateMatrix(M, N, width)
+        matB = generateMatrix(N, K, width)
 
         # inputs are valid
         dut.ops_val.value=1
@@ -49,7 +53,7 @@ async def testMatrixMultiplier(dut): # async so we can wait for clock edge to ha
     
         # read results as they stream out
         softwareResult = matrixMultiplier(matA, matB)
-        hardwareResult = await readHardwareResult(dut, n)
+        hardwareResult = await readHardwareResult(dut, M, K)
 
         assert softwareResult == hardwareResult, f"Error on trial {testRun}. Hardware: {hardwareResult}, Software: {softwareResult}"
 
@@ -78,7 +82,7 @@ async def streamMatrixIn(dut, mat: list):
             dut.s_axis_tlast.value = 0
 
 
-async def readHardwareResult(dut, n):
+async def readHardwareResult(dut, m, k):
     flatResult = []
 
     cycles = 0
@@ -94,6 +98,6 @@ async def readHardwareResult(dut, n):
                 break
     
     dut.m_axis_tready.value = 0
-    return [ flatResult[r*n:(r+1)*n] for r in range(n)]
+    return [ flatResult[r*k:(r+1)*k] for r in range(m)]
 
  

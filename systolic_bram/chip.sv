@@ -1,6 +1,8 @@
 
 module chip #(
+    parameter M = 8,
     parameter N = 4,
+    parameter K = 6,
     parameter WIDTH = 8
 )(
     input logic clk,
@@ -31,7 +33,12 @@ logic compute_busy;
 logic compute_done;
 
 // instantiations
-datapath dp (
+datapath #(
+    .M (M),
+    .N (N),
+    .K (K),
+    .WIDTH (WIDTH)
+) dp (
     .clk (clk),
     .rst (rst),
     .s_axis_tdata (s_axis_tdata),
