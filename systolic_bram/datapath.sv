@@ -87,7 +87,9 @@ logic [$clog2(3*N):0] t; // cycle counter to know when done computing (heartbeat
 // ~N cycles input enterring + ~N to move across array + ~N mult-adds to accumulate dot product
 logic [$clog2(N*N):0] out_cnt; // counts us outputting the result matrix ab_out's entries
 
-// internal
+logic a_valid [0:N-1];   // was mat A bank i's read an in-window/valid read?
+logic b_valid [0:N-1];   // was mat B bank j's read an in-window/valid read?
+
 assign loaded = (load_cnt == 2*N*N); // loaded all
 assign s_axis_tready = (load_cnt < 2*N*N); // load entries until we get them all!
 
@@ -140,8 +142,8 @@ always_ff @(posedge clk) begin
     end
 end
 
+/////////// LOADING (writing into banks) ///////////
 
-// WRITE (route tdata to right bank during loading)
 always_comb begin
     for (int bank=0; bank<N; bank++) begin // default (no bank written)
         a_we[bank] = '0;
@@ -152,12 +154,63 @@ always_comb begin
         b_wdata[bank] = '0;
     end
 
+    if (s_axis_tvalid && s_axis_tready) begin // yes an element is arriving
+        if (load_cnt<N*N) begin // first NxN = mat A
+        // bank=row, addr=col
+            a_we[load_cnt/N] = 1'b1; // write enable
+            a_waddr[load_cnt/N] = load_cnt%N; // address = col
+            a_wdata[load_cnt/N] = s_axis_tdata; // the value to store there
+        end else begin // next N*N = mat B
+        // addr=row, bank=col
+            b_we[(load_cnt-N*N)%N] = 1'b1; // write enable
+            b_waddr[(load_cnt-N*N)%N] = (load_cnt-N*N)/N; // address = row
+            b_wdata[(load_cnt-N*N)%N] = s_axis_tdata; // the value to store there
+        end
+    end
 end
 
-// READ (present read address with skew for systolic array)
+//////////// FEED ///////////
+
+// prefetching - present read addresses (t+1's values NOW for next cycle bc bram will be 1 cycle late)
 always_comb begin
-
+    for (int i=0; i<N; i++) begin
+        if (compute_busy && (t+1)>=i && (t+1)-i<N) // will row i be active next cycle (SHOULD WE FEED VALUE OR 0 for staircase)
+            a_raddr[i] = (t+1) - i; // yes - get that column
+        else
+            a_raddr[i] = '0; // no - ask anything j ignore it later
+    end
+    for (int j = 0; j < N; j++) begin
+        if (compute_busy && (t+1)>=j && (t+1)-j<N) // will col j be active next cycle (SHOULD WE FEED VALUE OR 0 for staircase)
+            b_raddr[j] = (t+1) - j; // yes - get that row
+        else
+            b_raddr[j] = '0;
+    end
 end
+
+// remember if ask was real or useless - delayed 1 cycle so lines up w data
+always_ff @(posedge clk) begin
+    for (int i=0; i<N; i++)
+        a_valid[i] <= (compute_busy) && ((t+1)>=i) && ((t+1)-i<N); // same condition used in prefetching to see if real ask
+    for (int j=0; j<N; j++)
+        b_valid[j] <= (compute_busy) && ((t+1)>=j) && ((t+1)-j<N);
+end
+
+// data arrived - feed to array if real else just '0 if invalid
+always_comb begin
+    for (int i=0; i<N; i++) begin
+        if (a_valid[i]) // use data
+            a_edge[i] = a_rdata[i];
+        else // junk
+            a_edge[i] = '0;
+    end    
+    for (int j=0; j<N; j++) begin
+        if (b_valid[j]) // use data
+            b_edge[j] = b_rdata[j];
+        else // junk
+            b_edge[j] = '0;
+    end
+end
+
 
 // testing/debug - remove later
 always @(posedge clk) begin
