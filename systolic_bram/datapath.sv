@@ -117,7 +117,10 @@ always_ff @(posedge clk) begin
 
     // if we are computing, advance (while t < 3N-3)
     end else if (compute_busy) begin
-        if (t < M+N+K-3) begin // computing values - changed to -2 because we gated feed in always_comb w compute_busy
+        if (t < M+N+K-3) begin // computing values:
+        // (M-1) is vert distance to farthest row for B propagating down
+        // (K-1) is horiz distance to farthest col for A propagating right
+        // (N-1) is accumulation length for dot product (N terms)
             t <= t + 1;
         end else begin // (t == 3N-3) -> done computing
         // push ab_out
